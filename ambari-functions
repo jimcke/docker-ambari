@@ -6,14 +6,15 @@ curl -Lo .amb j.mp/docker-ambari && . .amb
 full documentation: https://github.com/sequenceiq/docker-ambari
 USAGE
 
-: ${NODE_PREFIX=amb}
+: ${NODE_PREFIX=trg}
 : ${AMBARI_SERVER_NAME:=${NODE_PREFIX}-server}
-: ${AMBARI_SERVER_IMAGE:="hortonworks/ambari-server:latest"}
-: ${AMBARI_AGENT_IMAGE:="hortonworks/ambari-agent:latest"}
+: ${AMBARI_SERVER_IMAGE:="trg/ambari-server:latest"}
+: ${AMBARI_AGENT_IMAGE:="trg/ambari-agent:latest"}
 : ${DOCKER_OPTS:=""}
 : ${CONSUL:="${NODE_PREFIX}-consul"}
 : ${CONSUL_IMAGE:="sequenceiq/consul:v0.5.0-v6"}
-: ${CLUSTER_SIZE:=3}
+: ${CLUSTER_SIZE:=2}
+: ${CPU_SIZE:=1}
 : ${DEBUG:=1}
 : ${SLEEP_TIME:=2}
 : ${DNS_PORT:=53}
@@ -56,6 +57,7 @@ amb-settings() {
   cat <<EOF
   NODE_PREFIX=$NODE_PREFIX
   CLUSTER_SIZE=$CLUSTER_SIZE
+  CPU_SIZE=$CPU_SIZE
   AMBARI_SERVER_NAME=$AMBARI_SERVER_NAME
   AMBARI_SERVER_IMAGE=$AMBARI_SERVER_IMAGE
   AMBARI_AGENT_IMAGE=$AMBARI_AGENT_IMAGE
@@ -127,10 +129,10 @@ amb-start-first() {
   if [[ "$EXPOSE_DNS" == "true" ]]; then
      dns_port_command="-p 53:$DNS_PORT/udp"
   fi
-  run-command docker run -d $dns_port_command --name $CONSUL -h $CONSUL.service.consul $CONSUL_IMAGE -server -bootstrap
+  run-command docker run -d $dns_port_command --cpus=$CPU_SIZE --name $CONSUL -h $CONSUL.service.consul $CONSUL_IMAGE -server -bootstrap
   sleep 5
 
-  run-command docker run -d $DOCKER_OPTS --privileged --name $AMBARI_SERVER_NAME -h $AMBARI_SERVER_NAME.service.consul $AMBARI_SERVER_IMAGE \
+  run-command docker run -d $DOCKER_OPTS --privileged  --cpus=$CPU_SIZE --name $AMBARI_SERVER_NAME -h $AMBARI_SERVER_NAME.service.consul $AMBARI_SERVER_IMAGE \
           systemd.setenv=NAMESERVER_ADDR=$(get-consul-ip)
 
   get-ambari-server-ip
@@ -174,7 +176,7 @@ amb-start-node() {
     MORE_OPTIONS="$@"
   fi
 
-  run-command docker run $MORE_OPTIONS $DOCKER_OPTS --privileged --name ${NODE_PREFIX}$NUMBER -h ${NODE_PREFIX}${NUMBER}.service.consul $AMBARI_AGENT_IMAGE \
+  run-command docker run $MORE_OPTIONS $DOCKER_OPTS --privileged --cpus=$CPU_SIZE --name ${NODE_PREFIX}$NUMBER -h ${NODE_PREFIX}${NUMBER}.service.consul $AMBARI_AGENT_IMAGE \
               systemd.setenv=NAMESERVER_ADDR=$(get-consul-ip)
 
   _consul-register-service ${NODE_PREFIX}${NUMBER} $(get-host-ip ${NODE_PREFIX}$NUMBER)

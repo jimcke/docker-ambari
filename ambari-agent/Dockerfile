@@ -1,8 +1,12 @@
-FROM hortonworks/ambari-base:7.2-v7
-MAINTAINER Hortonworks
+FROM trg/ambari-base:latest
+MAINTAINER jimcke
 
-# add ambari repo
-ADD ambari.repo /etc/yum.repos.d/
+## add ambari repo
+ADD repos/ambari.repo /etc/yum.repos.d/ambari.repo
+ADD repos/hdp.repo /etc/yum.repos.d/hdp.repo
+ADD repos/hdp.gpl.repo /etc/yum.repos.d/hdp.gpl.repo
+
+
 
 RUN yum install -y  ambari-agent && yum clean all
 #RUN find /etc/rc.d/rc* -name "*ambari-agent" | xargs rm -v
@@ -17,7 +21,7 @@ RUN sed -i "/\[agent\]/ a public_hostname_script=\/etc\/ambari-agent\/conf\/publ
 RUN sed -i "/\[agent\]/ a hostname_script=\/etc\/ambari-agent\/conf\/internal-hostname.sh" /etc/ambari-agent/conf/ambari-agent.ini
 
 # do not use the docker0 interface
-RUN sed -i "s/\"ifconfig\"/\"ifconfig eth0\"/" /usr/lib/python2.6/site-packages/ambari_agent/Facter.py
+#RUN sed -i "s/\"ifconfig\"/\"ifconfig eth0\"/" /usr/lib/python2.6/site-packages/ambari_agent/Facter.py
 
 # Add jars from packer image
 ADD dash-azure-storage-2.2.0.jar /usr/lib/hadoop/lib/
